@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Scene } from './components/Scene';
 import { ScrollTracker } from './components/journey/ScrollTracker';
 import { audioEngine } from './components/audio/AudioEngine';
+import { JourneyUI } from './components/ui/JourneyUI';
 
 const App = () => {
   const [isMuted, setIsMuted] = useState(true);
@@ -16,6 +17,7 @@ const App = () => {
       <div className="canvas-container">
         <Scene />
       </div>
+      <JourneyUI />
       <div className="scroll-container">
         <ScrollTracker />
       </div>
