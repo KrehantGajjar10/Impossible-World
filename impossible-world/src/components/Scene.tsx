@@ -1,6 +1,7 @@
 import { Canvas } from '@react-three/fiber';
 import { World } from './world/World';
 import { CinematicCamera } from './camera/CinematicCamera';
+import { AmbientAudio } from './audio/AmbientAudio';
 
 export const Scene = () => {
   return (
@@ -11,6 +12,7 @@ export const Scene = () => {
       <color attach="background" args={['#050505']} />
       <fog attach="fog" args={['#050505', 15, 60]} />
       
+      <AmbientAudio />
       <CinematicCamera />
       <World />
     </Canvas>

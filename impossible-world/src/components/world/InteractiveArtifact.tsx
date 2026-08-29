@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { audioEngine } from '../audio/AudioEngine';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const InteractiveArtifact = (props: any) => {
@@ -51,6 +52,9 @@ export const InteractiveArtifact = (props: any) => {
       onPointerOut={() => setHovered(false)}
       onClick={(e) => {
         e.stopPropagation();
+        if (!clicked) {
+          audioEngine.playArtifactPing();
+        }
         setClicked(!clicked); // Toggle on/off
       }}
       castShadow

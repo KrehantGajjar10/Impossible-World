@@ -2,6 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { journeyState } from '../journey/journeyState';
+import { audioEngine } from '../audio/AudioEngine';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const ImpossibleLandmark = (props: any) => {
@@ -35,6 +36,9 @@ export const ImpossibleLandmark = (props: any) => {
     // The landmark is at the end of the journey, so the transformation 
     // should become most dramatic as progress goes from 0.5 to 1.0.
     const influence = Math.max(0, (progress - 0.5) * 2);
+
+    // Phase 12: Modulate audio resonance based on physical transformation
+    audioEngine.updateGatewayResonance(influence);
 
     // Calculate target rotations: twist significantly as you approach
     const innerTargetEuler = new THREE.Euler(
