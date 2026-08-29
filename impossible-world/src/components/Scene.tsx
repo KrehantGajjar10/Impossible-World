@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber';
 import { World } from './world/World';
 import { CinematicCamera } from './camera/CinematicCamera';
 import { AmbientAudio } from './audio/AmbientAudio';
+import { CinematicEffects } from './effects/CinematicEffects';
 
 export const Scene = () => {
   return (
@@ -15,6 +16,7 @@ export const Scene = () => {
       <AmbientAudio />
       <CinematicCamera />
       <World />
+      <CinematicEffects />
     </Canvas>
   );
 };
