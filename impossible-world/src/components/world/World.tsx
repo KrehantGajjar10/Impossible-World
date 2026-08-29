@@ -6,10 +6,18 @@ import { ImpossibleLandmark } from '../architecture/ImpossibleLandmark';
 export const World = () => {
   const groupRef = useRef<THREE.Group>(null);
 
-  // Slight subtle rotation to give life to the scene
-  useFrame(({ clock }) => {
+  // Subtle rotation and mouse parallax to give life to the scene
+  useFrame(({ clock, pointer }) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.1) * 0.05; // Slowed down slightly to emphasize monumentality
+      const baseRotY = Math.sin(clock.elapsedTime * 0.1) * 0.05; // Slowed down slightly to emphasize monumentality
+      
+      // Pointer offset target
+      const targetRotX = pointer.y * -0.05;
+      const targetRotY = baseRotY + (pointer.x * 0.05);
+
+      // Smooth lerp towards target
+      groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, targetRotX, 0.05);
+      groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetRotY, 0.05);
     }
   });
 

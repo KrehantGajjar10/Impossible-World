@@ -15,7 +15,7 @@ const WAYPOINTS = [
 export const CinematicCamera = () => {
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock, pointer }) => {
     if (!cameraRef.current) return;
     
     // 1. Calculate target from scroll progress
@@ -37,12 +37,16 @@ export const CinematicCamera = () => {
     const targetBasePos = new THREE.Vector3().lerpVectors(startWaypoint.pos, endWaypoint.pos, localProgress);
     const targetLookAt = new THREE.Vector3().lerpVectors(startWaypoint.look, endWaypoint.look, localProgress);
 
-    // 2. Add subtle cinematic sway (time-based)
+    // 2. Add subtle cinematic sway (time-based) + mouse parallax
     const time = clock.elapsedTime;
     const swayX = Math.sin(time * 0.3) * 0.3;
     const swayY = Math.cos(time * 0.4) * 0.2;
     
-    const finalTargetPos = targetBasePos.clone().add(new THREE.Vector3(swayX, swayY, 0));
+    // Invert pointer slightly for a natural "head turn" perspective
+    const parallaxX = pointer.x * -1.5;
+    const parallaxY = pointer.y * -1.0;
+    
+    const finalTargetPos = targetBasePos.clone().add(new THREE.Vector3(swayX + parallaxX, swayY + parallaxY, 0));
 
     // 3. Smooth position interpolation (damping)
     // Using a slightly higher lerp factor than previous phase so it responds well to scrolling
