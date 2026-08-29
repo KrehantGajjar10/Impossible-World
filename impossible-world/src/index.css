@@ -24,7 +24,7 @@ body,
   top: 0;
   left: 0;
   width: 100%;
-  height: 500vh; /* Provides the vertical space needed for the journey */
+  height: 1000vh; /* Expanded for Phase 9 journey */
   z-index: 2;
   pointer-events: none; /* Let pointer events pass through to canvas if needed later */
 }

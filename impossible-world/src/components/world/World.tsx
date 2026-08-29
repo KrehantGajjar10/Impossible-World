@@ -1,22 +1,38 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ImpossibleLandmark } from '../architecture/ImpossibleLandmark';
 import { InteractiveArtifact } from './InteractiveArtifact';
+import { VoidArchitecture } from '../architecture/VoidArchitecture';
+import { journeyState } from '../journey/journeyState';
 
 export const World = () => {
   const groupRef = useRef<THREE.Group>(null);
+  
+  // Memoize colors to prevent re-instantiation
+  const startColor = useMemo(() => new THREE.Color('#050505'), []);
+  const endColor = useMemo(() => new THREE.Color('#1a0505'), []);
 
-  // Subtle rotation and mouse parallax to give life to the scene
-  useFrame(({ clock, pointer }) => {
+  // Subtle rotation, mouse parallax, and portal transition
+  useFrame(({ clock, pointer, scene }) => {
+    // 1. Phase 9 Portal Transition
+    const progress = journeyState.progress;
+    // Fade into the void dimension after passing the gateway (progress 0.5 -> 1.0)
+    const portalProgress = Math.max(0, Math.min(1, (progress - 0.5) * 2));
+    
+    const targetColor = startColor.clone().lerp(endColor, portalProgress);
+    scene.background = targetColor;
+    if (scene.fog) {
+      scene.fog.color = targetColor;
+    }
+
+    // 2. Parallax and Breathing
     if (groupRef.current) {
-      const baseRotY = Math.sin(clock.elapsedTime * 0.1) * 0.05; // Slowed down slightly to emphasize monumentality
+      const baseRotY = Math.sin(clock.elapsedTime * 0.1) * 0.05; 
       
-      // Pointer offset target
       const targetRotX = pointer.y * -0.05;
       const targetRotY = baseRotY + (pointer.x * 0.05);
 
-      // Smooth lerp towards target
       groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, targetRotX, 0.05);
       groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetRotY, 0.05);
     }
@@ -24,6 +40,7 @@ export const World = () => {
 
   return (
     <>
+      <fog attach="fog" args={['#050505', 5, 40]} />
       {/* Lighting */}
       <ambientLight intensity={0.5} color="#ffffff" />
       <directionalLight
@@ -65,6 +82,9 @@ export const World = () => {
 
         {/* Phase 5: Impossible Gateway Landmark */}
         <ImpossibleLandmark position={[-8, 6, -15]} rotation={[0, Math.PI / 6, 0]} />
+
+        {/* Phase 9: Void Architecture */}
+        <VoidArchitecture position={[-15, 6, -30]} rotation={[0, -Math.PI / 8, 0]} />
       </group>
     </>
   );

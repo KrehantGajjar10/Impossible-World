@@ -9,7 +9,11 @@ const WAYPOINTS = [
   { pos: new THREE.Vector3(0, 2, 10), look: new THREE.Vector3(0, 2, -5) },    // Start: Looking at central monolith
   { pos: new THREE.Vector3(0, 3, 0), look: new THREE.Vector3(-2, 4, -10) },   // Approach: Passing monolith, looking left
   { pos: new THREE.Vector3(-3, 4, -8), look: new THREE.Vector3(-8, 5, -15) }, // Deepen: Moving towards distant architecture
-  { pos: new THREE.Vector3(-5, 5, -12), look: new THREE.Vector3(-10, 8, -25) } // End: Looking at the furthest structure
+  { pos: new THREE.Vector3(-5, 5, -12), look: new THREE.Vector3(-10, 8, -25) }, // End Phase 8: Looking at the gateway
+  // Phase 9 Extended Waypoints
+  { pos: new THREE.Vector3(-8, 6, -14), look: new THREE.Vector3(-15, 6, -30) }, // Through the gateway
+  { pos: new THREE.Vector3(-12, 6, -22), look: new THREE.Vector3(-15, 6, -40) }, // Approaching void
+  { pos: new THREE.Vector3(-15, 6, -28), look: new THREE.Vector3(-15, 6, -45) }  // Inside void
 ];
 
 export const CinematicCamera = () => {
