@@ -2,6 +2,15 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
+import { journeyState } from '../journey/journeyState';
+
+// Define the camera journey waypoints through the existing geometry
+const WAYPOINTS = [
+  { pos: new THREE.Vector3(0, 2, 10), look: new THREE.Vector3(0, 2, -5) },    // Start: Looking at central monolith
+  { pos: new THREE.Vector3(0, 3, 0), look: new THREE.Vector3(-2, 4, -10) },   // Approach: Passing monolith, looking left
+  { pos: new THREE.Vector3(-3, 4, -8), look: new THREE.Vector3(-8, 5, -15) }, // Deepen: Moving towards distant architecture
+  { pos: new THREE.Vector3(-5, 5, -12), look: new THREE.Vector3(-10, 8, -25) } // End: Looking at the furthest structure
+];
 
 export const CinematicCamera = () => {
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
@@ -9,32 +18,42 @@ export const CinematicCamera = () => {
   useFrame(({ clock }) => {
     if (!cameraRef.current) return;
     
-    const time = clock.elapsedTime;
-
-    // Automatic test motion for Phase 3 (slowly drift forward)
-    // In Phase 4, this target will be driven by scroll progress instead of time.
-    const baseZ = 10 - (time * 0.5); 
+    // 1. Calculate target from scroll progress
+    const progress = journeyState.progress;
     
-    // Subtle cinematic sway
+    // Determine which segment we are in
+    const segments = WAYPOINTS.length - 1;
+    const scaledProgress = progress * segments;
+    const currentIndex = Math.min(Math.floor(scaledProgress), segments - 1);
+    const nextIndex = currentIndex + 1;
+    
+    // Local progress within the current segment (0 to 1)
+    const localProgress = scaledProgress - currentIndex;
+
+    const startWaypoint = WAYPOINTS[currentIndex];
+    const endWaypoint = WAYPOINTS[nextIndex];
+
+    // Interpolate base position and look target
+    const targetBasePos = new THREE.Vector3().lerpVectors(startWaypoint.pos, endWaypoint.pos, localProgress);
+    const targetLookAt = new THREE.Vector3().lerpVectors(startWaypoint.look, endWaypoint.look, localProgress);
+
+    // 2. Add subtle cinematic sway (time-based)
+    const time = clock.elapsedTime;
     const swayX = Math.sin(time * 0.3) * 0.3;
     const swayY = Math.cos(time * 0.4) * 0.2;
     
-    const targetPosition = new THREE.Vector3(swayX, 2 + swayY, baseZ);
+    const finalTargetPos = targetBasePos.clone().add(new THREE.Vector3(swayX, swayY, 0));
 
-    // Smooth position interpolation (damping)
-    cameraRef.current.position.lerp(targetPosition, 0.02);
+    // 3. Smooth position interpolation (damping)
+    // Using a slightly higher lerp factor than previous phase so it responds well to scrolling
+    cameraRef.current.position.lerp(finalTargetPos, 0.05);
 
-    // Determine where to look
-    // We look straight ahead, but slowly follow the forward progress
-    const lookTarget = new THREE.Vector3(0, 2, baseZ - 15);
-
-    // For smooth, cinematic rotation, we calculate the target rotation using a dummy object,
-    // and then spherically interpolate (slerp) the camera's current rotation towards it.
+    // 4. Smooth rotation interpolation (damping towards target LookAt)
     const dummy = new THREE.Object3D();
     dummy.position.copy(cameraRef.current.position);
-    dummy.lookAt(lookTarget);
+    dummy.lookAt(targetLookAt);
 
-    cameraRef.current.quaternion.slerp(dummy.quaternion, 0.02);
+    cameraRef.current.quaternion.slerp(dummy.quaternion, 0.05);
   });
 
   return (

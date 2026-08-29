@@ -7,6 +7,24 @@ body,
   padding: 0;
   background-color: #050505;
   color: #ffffff;
-  overflow: hidden;
   font-family: sans-serif;
+}
+
+.canvas-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.scroll-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 500vh; /* Provides the vertical space needed for the journey */
+  z-index: 2;
+  pointer-events: none; /* Let pointer events pass through to canvas if needed later */
 }
