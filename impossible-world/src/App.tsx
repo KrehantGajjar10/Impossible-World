@@ -1,5 +1,7 @@
+import { Scene } from './components/Scene';
+
 const App = () => {
-  return <div>App</div>;
+  return <Scene />;
 };
 
 export default App;
