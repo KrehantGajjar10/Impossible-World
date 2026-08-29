@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { ImpossibleLandmark } from '../architecture/ImpossibleLandmark';
 
 export const World = () => {
   const groupRef = useRef<THREE.Group>(null);
@@ -8,7 +9,7 @@ export const World = () => {
   // Slight subtle rotation to give life to the scene
   useFrame(({ clock }) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.1) * 0.1;
+      groupRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.1) * 0.05; // Slowed down slightly to emphasize monumentality
     }
   });
 
@@ -34,27 +35,26 @@ export const World = () => {
       <group ref={groupRef}>
         {/* Ground */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]} receiveShadow>
-          <planeGeometry args={[100, 100]} />
+          <planeGeometry args={[150, 150]} />
           <meshStandardMaterial color="#1a1a1a" roughness={0.9} metalness={0.1} />
         </mesh>
 
-        {/* Central Monolith */}
-        <mesh position={[0, 3, -5]} castShadow receiveShadow>
-          <boxGeometry args={[2, 10, 2]} />
-          <meshStandardMaterial color="#333333" roughness={0.2} metalness={0.6} />
+        {/* Framing Monolith 1 (Right) */}
+        <mesh position={[6, 8, -5]} castShadow receiveShadow>
+          <boxGeometry args={[2, 20, 2]} />
+          <meshStandardMaterial color="#222222" roughness={0.2} metalness={0.6} />
         </mesh>
 
-        {/* Distant Architecture */}
-        <mesh position={[-8, 5, -15]} castShadow receiveShadow>
-          <boxGeometry args={[4, 15, 3]} />
+        {/* Framing Monolith 2 (Left depth) */}
+        <mesh position={[-6, 12, -8]} castShadow receiveShadow>
+          <boxGeometry args={[3, 28, 3]} />
           <meshStandardMaterial color="#2b2b2b" roughness={0.4} metalness={0.5} />
         </mesh>
 
-        <mesh position={[10, 8, -25]} castShadow receiveShadow>
-          <boxGeometry args={[6, 20, 4]} />
-          <meshStandardMaterial color="#222222" roughness={0.5} metalness={0.3} />
-        </mesh>
+        {/* Phase 5: Impossible Gateway Landmark */}
+        <ImpossibleLandmark position={[-8, 6, -15]} rotation={[0, Math.PI / 6, 0]} />
       </group>
     </>
   );
 };
+
