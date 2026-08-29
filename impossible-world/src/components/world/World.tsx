@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ImpossibleLandmark } from '../architecture/ImpossibleLandmark';
+import { InteractiveArtifact } from './InteractiveArtifact';
 
 export const World = () => {
   const groupRef = useRef<THREE.Group>(null);
@@ -47,6 +48,9 @@ export const World = () => {
           <meshStandardMaterial color="#1a1a1a" roughness={0.9} metalness={0.1} />
         </mesh>
 
+        {/* Phase 8: Interactive Artifact */}
+        <InteractiveArtifact position={[-2, 3, -6]} />
+
         {/* Framing Monolith 1 (Right) */}
         <mesh position={[6, 8, -5]} castShadow receiveShadow>
           <boxGeometry args={[2, 20, 2]} />
@@ -65,4 +69,5 @@ export const World = () => {
     </>
   );
 };
+
 
