@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { ImpossibleLandmark } from '../architecture/ImpossibleLandmark';
 import { InteractiveArtifact } from './InteractiveArtifact';
 import { VoidArchitecture } from '../architecture/VoidArchitecture';
+import { AtmosphericParticles } from './AtmosphericParticles';
 import { journeyState } from '../journey/journeyState';
 
 export const World = () => {
@@ -40,12 +41,12 @@ export const World = () => {
 
   return (
     <>
-      <fog attach="fog" args={['#050505', 5, 40]} />
+      <fog attach="fog" args={['#050505', 5, 35]} />
       {/* Lighting */}
-      <ambientLight intensity={0.5} color="#ffffff" />
+      <ambientLight intensity={0.15} color="#ffffff" />
       <directionalLight
         position={[10, 20, 10]}
-        intensity={3.0}
+        intensity={4.0}
         color="#cceeff"
         castShadow
         shadow-mapSize-width={2048}
@@ -53,9 +54,12 @@ export const World = () => {
       />
       <directionalLight
         position={[-10, -5, -10]}
-        intensity={1.5}
+        intensity={2.0}
         color="#aa44ff"
       />
+
+      {/* Atmospheric Particles */}
+      <AtmosphericParticles />
 
       {/* Environment */}
       <group ref={groupRef}>
