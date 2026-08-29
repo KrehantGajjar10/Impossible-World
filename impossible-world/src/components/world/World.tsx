@@ -66,7 +66,13 @@ export const World = () => {
         {/* Ground */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]} receiveShadow>
           <planeGeometry args={[150, 150]} />
-          <meshStandardMaterial color="#1a1a1a" roughness={0.9} metalness={0.1} />
+          <meshPhysicalMaterial 
+            color="#080808" 
+            roughness={0.4} 
+            metalness={0.8} 
+            clearcoat={0.5} 
+            clearcoatRoughness={0.3} 
+          />
         </mesh>
 
         {/* Phase 8: Interactive Artifact */}
@@ -75,13 +81,13 @@ export const World = () => {
         {/* Framing Monolith 1 (Right) */}
         <mesh position={[6, 8, -5]} castShadow receiveShadow>
           <boxGeometry args={[2, 20, 2]} />
-          <meshStandardMaterial color="#222222" roughness={0.2} metalness={0.6} />
+          <meshStandardMaterial color="#1a1a1a" roughness={0.2} metalness={0.8} />
         </mesh>
 
         {/* Framing Monolith 2 (Left depth) */}
         <mesh position={[-6, 12, -8]} castShadow receiveShadow>
           <boxGeometry args={[3, 28, 3]} />
-          <meshStandardMaterial color="#2b2b2b" roughness={0.4} metalness={0.5} />
+          <meshStandardMaterial color="#1a1a1a" roughness={0.3} metalness={0.7} />
         </mesh>
 
         {/* Phase 5: Impossible Gateway Landmark */}

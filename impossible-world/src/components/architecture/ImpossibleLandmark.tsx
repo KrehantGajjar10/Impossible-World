@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { journeyState } from '../journey/journeyState';
@@ -8,11 +8,26 @@ export const ImpossibleLandmark = (props: any) => {
   const innerFrameRef = useRef<THREE.Group>(null);
   const coreFrameRef = useRef<THREE.Group>(null);
 
+  // Phase 11: Shared Emissive Material for the core
+  const coreMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: '#111111',
+      emissive: '#00bfff',
+      emissiveIntensity: 1.5,
+      roughness: 0.2,
+      metalness: 0.8
+    });
+  }, []);
+
   // Base impossible rotations (from Phase 5)
   const innerBaseRotation = new THREE.Euler(Math.PI / 2, 0, Math.PI / 4);
   const coreBaseRotation = new THREE.Euler(Math.PI / 4, Math.PI / 2, 0);
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
+    // Phase 11: Emissive Core Pulse
+    // Smooth subtle pulse between 1.0 and 2.0
+    coreMaterial.emissiveIntensity = 1.5 + Math.sin(clock.elapsedTime * 1.5) * 0.5;
+
     if (!innerFrameRef.current || !coreFrameRef.current) return;
 
     const progress = journeyState.progress;
@@ -86,21 +101,17 @@ export const ImpossibleLandmark = (props: any) => {
       
       {/* Core Frame (Dynamic Scroll Rotation) */}
       <group ref={coreFrameRef} rotation={[Math.PI / 4, Math.PI / 2, 0]}>
-        <mesh position={[0, 4, 0]} castShadow receiveShadow>
+        <mesh position={[0, 4, 0]} castShadow receiveShadow material={coreMaterial}>
           <boxGeometry args={[8, 1, 2]} />
-          <meshStandardMaterial color="#333333" roughness={0.2} metalness={0.8} />
         </mesh>
-        <mesh position={[0, -4, 0]} castShadow receiveShadow>
+        <mesh position={[0, -4, 0]} castShadow receiveShadow material={coreMaterial}>
           <boxGeometry args={[8, 1, 2]} />
-          <meshStandardMaterial color="#333333" roughness={0.2} metalness={0.8} />
         </mesh>
-        <mesh position={[-3.5, 0, 0]} castShadow receiveShadow>
+        <mesh position={[-3.5, 0, 0]} castShadow receiveShadow material={coreMaterial}>
           <boxGeometry args={[1, 7, 2]} />
-          <meshStandardMaterial color="#333333" roughness={0.2} metalness={0.8} />
         </mesh>
-        <mesh position={[3.5, 0, 0]} castShadow receiveShadow>
+        <mesh position={[3.5, 0, 0]} castShadow receiveShadow material={coreMaterial}>
           <boxGeometry args={[1, 7, 2]} />
-          <meshStandardMaterial color="#333333" roughness={0.2} metalness={0.8} />
         </mesh>
       </group>
     </group>
