@@ -1,5 +1,6 @@
 export class FrameLoader {
   private cache: Map<number, HTMLImageElement> = new Map();
+  private loading: Set<number> = new Set();
   private maxFrames: number;
   private basePath: string;
   private extension: string;
@@ -10,56 +11,74 @@ export class FrameLoader {
     this.extension = extension;
   }
 
-  /**
-   * Generates the URL for a specific frame index
-   * Note: The frames are 1-indexed (frame-0001 to frame-0240)
-   * The index parameter is 0-indexed (0 to 239)
-   */
   private getFrameUrl(index: number): string {
-    const frameNumber = index + 1; // 1-indexed file names
+    // Clamp just in case
+    const safeIndex = Math.max(0, Math.min(index, this.maxFrames - 1));
+    const frameNumber = safeIndex + 1;
     const paddedNumber = frameNumber.toString().padStart(4, '0');
     return `${this.basePath}frame-${paddedNumber}.${this.extension}`;
   }
 
   /**
-   * Gets a frame from cache, or returns null if not loaded
+   * Returns the exact frame if loaded, otherwise returns the closest loaded frame.
+   * If no frames are loaded at all, returns null.
    */
   public getFrame(index: number): HTMLImageElement | null {
-    return this.cache.get(index) || null;
-  }
-
-  /**
-   * Preloads a sequence of frames and returns a Promise that resolves when done.
-   */
-  public async preloadSequence(startIndex: number, count: number): Promise<void> {
-    const promises: Promise<void>[] = [];
-    const endIndex = Math.min(startIndex + count, this.maxFrames);
+    if (this.cache.has(index)) {
+      return this.cache.get(index)!;
+    }
     
-    for (let i = startIndex; i < endIndex; i++) {
-      if (!this.cache.has(i)) {
-        promises.push(this.loadImage(i));
+    // Find nearest loaded frame to prevent flashing
+    let nearestDist = Infinity;
+    let nearestImg: HTMLImageElement | null = null;
+    
+    for (const [loadedIndex, img] of this.cache.entries()) {
+      const dist = Math.abs(loadedIndex - index);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestImg = img;
       }
     }
     
-    await Promise.all(promises);
+    return nearestImg;
   }
 
   /**
-   * Internal method to load a single image
+   * Loads a frame if not already loaded or loading.
    */
+  public prioritizeFrame(index: number): void {
+    if (index < 0 || index >= this.maxFrames) return;
+    if (this.cache.has(index) || this.loading.has(index)) return;
+    
+    this.loadImage(index);
+  }
+
+  /**
+   * Queue surrounding frames based on current focus
+   */
+  public loadSurroundingFrames(centerIndex: number, radius = 5): void {
+    for (let i = 1; i <= radius; i++) {
+      this.prioritizeFrame(centerIndex + i);
+      this.prioritizeFrame(centerIndex - i);
+    }
+  }
+
   private loadImage(index: number): Promise<void> {
     return new Promise((resolve) => {
+      this.loading.add(index);
       const img = new Image();
       const url = this.getFrameUrl(index);
       
       img.onload = () => {
         this.cache.set(index, img);
+        this.loading.delete(index);
         resolve();
       };
       
       img.onerror = () => {
         console.error(`Failed to load frame: ${url}`);
-        resolve(); // Resolve anyway to not break Promise.all
+        this.loading.delete(index);
+        resolve();
       };
       
       img.src = url;
@@ -67,13 +86,30 @@ export class FrameLoader {
   }
 
   /**
-   * Preload critical frames immediately, then lazy load the rest.
+   * Preload critical opening frames immediately.
    */
-  public async initialize(initialBatch = 24): Promise<void> {
-    // 1. Wait for the initial batch (e.g., first second of video)
-    await this.preloadSequence(0, initialBatch);
+  public async initialize(initialBatch = 10): Promise<void> {
+    const promises: Promise<void>[] = [];
+    const endIndex = Math.min(initialBatch, this.maxFrames);
     
-    // 2. Start lazy loading the rest without blocking
-    this.preloadSequence(initialBatch, this.maxFrames - initialBatch).catch(console.error);
+    for (let i = 0; i < endIndex; i++) {
+      if (!this.cache.has(i)) {
+        promises.push(this.loadImage(i));
+      }
+    }
+    
+    await Promise.all(promises);
+    
+    // Start background loading for the rest, sequentially so we don't spam network
+    this.backgroundLoadSequential();
+  }
+  
+  private async backgroundLoadSequential() {
+    // Load remaining frames chunk by chunk
+    for (let i = 0; i < this.maxFrames; i++) {
+      if (!this.cache.has(i) && !this.loading.has(i)) {
+        await this.loadImage(i);
+      }
+    }
   }
 }
