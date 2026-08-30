@@ -6,9 +6,27 @@ interface CinematicUIProps {
 }
 
 const CHAPTERS = [
-  { id: 1, label: '01 — THE VALLEY DESCENT', start: 0.0, peak: 0.05, end: 0.4 },
-  { id: 2, label: '02 — THE FLOATING ISLANDS', start: 0.4, peak: 0.45, end: 0.8 },
-  { id: 3, label: '03 — THE MONOLITH', start: 0.8, peak: 0.85, end: 1.0 }
+  { 
+    id: 1, 
+    num: '01',
+    title: 'THE VALLEY', 
+    subtitle: 'Where the familiar begins.',
+    start: 0.05, peak: 0.1, end: 0.35 
+  },
+  { 
+    id: 2, 
+    num: '02',
+    title: 'THE FLOATING WORLD', 
+    subtitle: 'Gravity is no longer absolute.',
+    start: 0.4, peak: 0.45, end: 0.7 
+  },
+  { 
+    id: 3, 
+    num: '03',
+    title: 'BEYOND THE MONOLITH', 
+    subtitle: 'Something has been waiting here.',
+    start: 0.75, peak: 0.8, end: 0.9 
+  }
 ];
 
 export const CinematicUI = ({ scrollProgressRef }: CinematicUIProps) => {
@@ -17,6 +35,7 @@ export const CinematicUI = ({ scrollProgressRef }: CinematicUIProps) => {
   const progressLineRef = useRef<HTMLDivElement>(null);
   const progressDotRef = useRef<HTMLDivElement>(null);
   const chapterRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const finalPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let requestRef: number;
@@ -36,6 +55,7 @@ export const CinematicUI = ({ scrollProgressRef }: CinematicUIProps) => {
         return;
       }
 
+      // The scrollProgressRef now inherently carries smoothed cinematic interpolation.
       const p = scrollProgressRef.current;
 
       // 1. Opening Screen Fade (0 to 0.05)
@@ -44,19 +64,27 @@ export const CinematicUI = ({ scrollProgressRef }: CinematicUIProps) => {
         const openingY = clamp((p / 0.05) * -50, -50, 0);
         openingRef.current.style.opacity = openingOpacity.toString();
         openingRef.current.style.transform = `translate(-50%, calc(-50% + ${openingY}px))`;
-        openingRef.current.style.pointerEvents = openingOpacity > 0 ? 'auto' : 'none';
+        openingRef.current.style.pointerEvents = openingOpacity > 0.5 ? 'auto' : 'none';
       }
 
-      // 2. Persistent Brand Fade In (starts appearing after opening fades, e.g., 0.05 to 0.1)
+      // 2. Persistent Brand Fade In (0.05 to 0.1)
       if (brandRef.current) {
-        const brandOpacity = clamp((p - 0.05) / 0.05, 0, 0.4); // max opacity 0.4
+        const brandOpacity = clamp((p - 0.05) / 0.05, 0, 0.6); // Stronger contrast
         brandRef.current.style.opacity = brandOpacity.toString();
+        
+        // Hide at the very end to clear screen for final panel
+        if (p > 0.92) {
+            brandRef.current.style.opacity = clamp((1 - p) / 0.08, 0, 0.6).toString();
+        }
       }
 
-      // 3. Scroll Progress Indicator
+      // 3. Scroll Progress Indicator (Right side)
       if (progressLineRef.current && progressDotRef.current) {
-        // Dot moves down the line
         progressDotRef.current.style.top = `${p * 100}%`;
+        
+        // Hide softly as the final panel comes in
+        const progressOpacity = p > 0.90 ? clamp(1 - ((p - 0.90) / 0.05), 0, 1) : 1;
+        progressLineRef.current.parentElement!.style.opacity = progressOpacity.toString();
       }
 
       // 4. Cinematic Chapters
@@ -65,22 +93,45 @@ export const CinematicUI = ({ scrollProgressRef }: CinematicUIProps) => {
         if (!el) return;
 
         let opacity = 0;
+        let yOffset = 20; 
         
         if (p >= chapter.start && p <= chapter.end) {
           if (p < chapter.peak) {
-            // Fade in to 1
-            opacity = clamp((p - chapter.start) / (chapter.peak - chapter.start), 0, 1);
+            const ratio = (p - chapter.start) / (chapter.peak - chapter.start);
+            opacity = clamp(ratio, 0, 1);
+            yOffset = 20 * (1 - ratio);
           } else if (p < chapter.end - 0.05) {
-            // Fade from 1 to 0.3 (resting state)
-            opacity = clamp(1 - ((p - chapter.peak) / (chapter.end - 0.05 - chapter.peak)) * 0.7, 0.3, 1);
+            opacity = 1;
+            yOffset = 0;
           } else {
-            // Fade out from 0.3 to 0
-            opacity = clamp(0.3 * (1 - (p - (chapter.end - 0.05)) / 0.05), 0, 0.3);
+            const ratio = (p - (chapter.end - 0.05)) / 0.05;
+            opacity = clamp(1 - ratio, 0, 1);
+            yOffset = -10 * ratio; 
           }
         }
 
         el.style.opacity = opacity.toString();
+        el.style.transform = `translateY(${yOffset}px)`;
+        el.style.pointerEvents = opacity > 0.5 ? 'auto' : 'none';
       });
+
+      // 5. Final Moment Screen (Appears 0.93 -> 1.0)
+      // The user requested a slow, cinematic fade-in for the final panel.
+      if (finalPanelRef.current) {
+        let finalOpacity = 0;
+        let finalY = 40;
+        
+        if (p > 0.93) {
+            // Smoothly fade in from 0.93 to 0.97
+            const ratio = clamp((p - 0.93) / 0.04, 0, 1);
+            finalOpacity = ratio;
+            finalY = 40 * (1 - ratio);
+        }
+        
+        finalPanelRef.current.style.opacity = finalOpacity.toString();
+        finalPanelRef.current.style.transform = `translate(-50%, calc(-50% + ${finalY}px))`;
+        finalPanelRef.current.style.pointerEvents = finalOpacity > 0.5 ? 'auto' : 'none';
+      }
 
       requestRef = requestAnimationFrame(render);
     };
@@ -93,17 +144,21 @@ export const CinematicUI = ({ scrollProgressRef }: CinematicUIProps) => {
     };
   }, [scrollProgressRef]);
 
+  const handleExploreAgain = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div style={{
       position: 'fixed',
       inset: 0,
       pointerEvents: 'none',
       zIndex: 50,
-      color: '#ffffff',
+      color: 'rgba(255,255,255,0.95)',
       fontFamily: 'system-ui, -apple-system, sans-serif'
     }}>
       
-      {/* Opening Screen */}
+      {/* 1. Opening Screen */}
       <div 
         ref={openingRef}
         style={{
@@ -115,106 +170,158 @@ export const CinematicUI = ({ scrollProgressRef }: CinematicUIProps) => {
           flexDirection: 'column',
           alignItems: 'center',
           textAlign: 'center',
-          pointerEvents: 'none'
+          pointerEvents: 'auto',
+          width: '100%',
+          padding: '0 24px',
+          boxSizing: 'border-box'
         }}
       >
-        <h1 style={{
-          fontSize: 'clamp(24px, 4vw, 48px)',
-          fontWeight: 300,
-          letterSpacing: '0.5em',
-          margin: '0 0 16px 0',
+        <span style={{
+          fontSize: 'clamp(9px, 2vw, 12px)',
+          letterSpacing: '0.4em',
+          opacity: 0.8,
+          marginBottom: '24px',
           textTransform: 'uppercase',
-          textShadow: '0 4px 24px rgba(0,0,0,0.8)'
+          textShadow: '0 2px 12px rgba(0,0,0,0.8)'
+        }}>
+          An Experimental Cinematic World
+        </span>
+        <h1 style={{
+          fontSize: 'clamp(36px, 8vw, 84px)',
+          fontWeight: 300,
+          letterSpacing: '0.3em',
+          margin: '0 0 24px 0',
+          textTransform: 'uppercase',
+          textShadow: '0 4px 24px rgba(0,0,0,0.9)'
         }}>
           Impossible<br/>World
         </h1>
         <p style={{
-          fontSize: '10px',
+          fontSize: 'clamp(10px, 2.5vw, 14px)',
           letterSpacing: '0.3em',
-          opacity: 0.6,
+          opacity: 0.8,
           margin: 0,
-          textTransform: 'uppercase'
+          textTransform: 'uppercase',
+          textShadow: '0 2px 12px rgba(0,0,0,0.8)'
         }}>
-          A Journey Through The Impossible
+          A Journey Beyond The Laws Of Nature
         </p>
         
-        {/* Subtle scroll indicator */}
+        {/* Subtle scroll hint */}
         <div style={{
-          marginTop: '64px',
+          marginTop: '8vh',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          opacity: 0.4
+          opacity: 0.7
         }}>
-          <span style={{ fontSize: '9px', letterSpacing: '0.2em', marginBottom: '12px' }}>
+          <span style={{ 
+            fontSize: '10px', 
+            letterSpacing: '0.2em', 
+            marginBottom: '16px',
+            textShadow: '0 2px 8px rgba(0,0,0,0.5)'
+          }}>
             SCROLL TO EXPLORE
           </span>
           <div 
             className="animate-scroll-hint"
             style={{
-            width: '1px',
-            height: '40px',
-            background: 'linear-gradient(to bottom, rgba(255,255,255,0.5), transparent)'
+              width: '1px',
+              height: '40px',
+              background: 'linear-gradient(to bottom, rgba(255,255,255,0.8), transparent)'
           }} />
         </div>
       </div>
 
-      {/* Persistent Brand */}
+      {/* 2. Persistent Brand */}
       <div 
         ref={brandRef}
         style={{
           position: 'absolute',
-          top: '32px',
-          left: '32px',
-          fontSize: '10px',
-          fontWeight: 400,
-          letterSpacing: '0.4em',
-          textTransform: 'uppercase',
+          top: 'clamp(24px, 4vw, 40px)',
+          left: 'clamp(24px, 4vw, 40px)',
+          display: 'flex',
+          flexDirection: 'column',
           opacity: 0,
-          textShadow: '0 2px 8px rgba(0,0,0,0.8)'
+          textShadow: '0 2px 12px rgba(0,0,0,0.9)'
         }}
       >
-        Impossible World
+        <span style={{
+          fontSize: '12px',
+          fontWeight: 500,
+          letterSpacing: '0.4em',
+          textTransform: 'uppercase',
+          marginBottom: '4px'
+        }}>
+          Impossible World
+        </span>
+        <span style={{
+          fontSize: '9px',
+          opacity: 0.8,
+          letterSpacing: '0.2em',
+          textTransform: 'uppercase'
+        }}>
+          Digital Environment / 001
+        </span>
       </div>
 
-      {/* Scroll Progress Line */}
+      {/* 3. Scroll Progress Indicator */}
       <div style={{
         position: 'absolute',
         top: '50%',
-        right: '32px',
+        right: 'clamp(16px, 3vw, 40px)',
         transform: 'translateY(-50%)',
-        height: '200px',
-        width: '1px',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        height: '25vh',
+        minHeight: '150px',
         display: 'flex',
-        justifyContent: 'center'
+        flexDirection: 'column',
+        alignItems: 'center',
+        transition: 'opacity 0.5s ease'
       }}>
-        <div 
-          ref={progressLineRef}
-          style={{ width: '100%', height: '100%' }}
-        >
+        <span style={{
+          fontSize: '9px',
+          letterSpacing: '0.3em',
+          writingMode: 'vertical-rl',
+          transform: 'rotate(180deg)',
+          opacity: 0.6,
+          marginBottom: '16px',
+          textShadow: '0 2px 8px rgba(0,0,0,0.8)'
+        }}>
+          JOURNEY
+        </span>
+        <div style={{
+          width: '1px',
+          flexGrow: 1,
+          backgroundColor: 'rgba(255, 255, 255, 0.2)',
+          position: 'relative'
+        }}>
           <div 
-            ref={progressDotRef}
-            style={{
-              position: 'absolute',
-              top: '0%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '3px',
-              height: '3px',
-              backgroundColor: '#ffffff',
-              borderRadius: '50%',
-              boxShadow: '0 0 8px rgba(255,255,255,0.8)'
-            }}
-          />
+            ref={progressLineRef}
+            style={{ width: '100%', height: '100%', position: 'absolute' }}
+          >
+            <div 
+              ref={progressDotRef}
+              style={{
+                position: 'absolute',
+                top: '0%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '2px',
+                height: '16px',
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                borderRadius: '2px',
+                boxShadow: '0 0 12px rgba(255,255,255,0.6)'
+              }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Cinematic Chapters */}
+      {/* 4. Cinematic Chapters (Responsive Museum Glass Cards) */}
       <div style={{
         position: 'absolute',
-        bottom: '48px',
-        left: '32px',
+        bottom: 'clamp(32px, 6vw, 64px)',
+        left: 'clamp(24px, 4vw, 40px)',
         display: 'flex',
         flexDirection: 'column'
       }}>
@@ -222,22 +329,145 @@ export const CinematicUI = ({ scrollProgressRef }: CinematicUIProps) => {
           <div 
             key={chapter.id}
             ref={el => { chapterRefs.current[i] = el; }}
+            className="museum-glass"
             style={{
               position: 'absolute',
               bottom: 0,
               left: 0,
               opacity: 0,
-              fontSize: '11px',
-              fontWeight: 400,
-              letterSpacing: '0.3em',
-              textTransform: 'uppercase',
-              textShadow: '0 2px 12px rgba(0,0,0,0.8)',
-              whiteSpace: 'nowrap'
+              padding: 'clamp(20px, 3vw, 24px) clamp(24px, 4vw, 32px)',
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: '240px',
+              maxWidth: '85vw'
             }}
           >
-            {chapter.label}
+            <span style={{
+              fontSize: '11px',
+              letterSpacing: '0.2em',
+              opacity: 0.7,
+              marginBottom: '8px',
+              fontWeight: 500
+            }}>
+              {chapter.num}
+            </span>
+            <span style={{
+              fontSize: 'clamp(14px, 2.5vw, 16px)',
+              fontWeight: 500,
+              letterSpacing: '0.3em',
+              textTransform: 'uppercase',
+              marginBottom: '12px',
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+            }}>
+              {chapter.title}
+            </span>
+            <span style={{
+              fontSize: 'clamp(11px, 2vw, 12px)',
+              opacity: 0.8,
+              letterSpacing: '0.1em',
+              fontWeight: 300
+            }}>
+              {chapter.subtitle}
+            </span>
           </div>
         ))}
+      </div>
+
+      {/* 5. Final Moment Screen */}
+      <div 
+        ref={finalPanelRef}
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '90%',
+          maxWidth: '560px',
+          opacity: 0,
+          pointerEvents: 'none',
+          padding: '0',
+          boxSizing: 'border-box'
+        }}
+      >
+        <div 
+          className="museum-glass" 
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            padding: 'clamp(32px, 5vw, 48px) clamp(24px, 4vw, 40px)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)'
+          }}
+        >
+          <h2 style={{
+            fontSize: 'clamp(24px, 5vw, 36px)',
+            fontWeight: 300,
+            letterSpacing: '0.3em',
+            margin: '0 0 16px 0',
+            textTransform: 'uppercase',
+            textShadow: '0 2px 8px rgba(0,0,0,0.6)'
+          }}>
+            Impossible World
+          </h2>
+          <p style={{
+            fontSize: 'clamp(12px, 2.5vw, 14px)',
+            opacity: 0.9,
+            letterSpacing: '0.15em',
+            margin: '0 0 40px 0',
+            fontWeight: 400
+          }}>
+            Beyond what should exist.
+          </p>
+          
+          <div style={{
+            width: '100%',
+            height: '1px',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)',
+            marginBottom: '40px'
+          }} />
+
+          <p style={{ 
+            fontSize: 'clamp(11px, 2vw, 12px)', 
+            lineHeight: 1.8, 
+            opacity: 0.8, 
+            margin: '0 0 24px 0', 
+            fontWeight: 300,
+            maxWidth: '400px'
+          }}>
+            An impossible landscape discovered beyond the limits of ordinary geography.
+          </p>
+          
+          <p style={{ 
+            fontSize: 'clamp(10px, 2vw, 11px)', 
+            opacity: 0.6, 
+            margin: '0 0 48px 0', 
+            letterSpacing: '0.1em',
+            fontWeight: 300
+          }}>
+            A cinematic experiment in environment, motion and imagination.
+          </p>
+
+          <button 
+            className="museum-glass interactive-glass"
+            onClick={handleExploreAgain}
+            aria-label="Explore the cinematic world again"
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              color: 'white',
+              padding: '16px 32px',
+              fontSize: '11px',
+              letterSpacing: '0.25em',
+              textTransform: 'uppercase',
+              fontFamily: 'inherit',
+              fontWeight: 500
+            }}
+          >
+            Explore Again
+          </button>
+        </div>
       </div>
 
     </div>

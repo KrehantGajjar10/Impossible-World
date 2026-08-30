@@ -4,12 +4,12 @@ import { useScrollProgress } from './hooks/useScrollProgress';
 import './index.css';
 
 function App() {
-  const scrollProgressRef = useScrollProgress();
+  const { currentProgressRef } = useScrollProgress();
 
   return (
     <>
-      <CinematicCanvas scrollProgressRef={scrollProgressRef} />
-      <CinematicUI scrollProgressRef={scrollProgressRef} />
+      <CinematicCanvas scrollProgressRef={currentProgressRef} />
+      <CinematicUI scrollProgressRef={currentProgressRef} />
       
       <div 
         className="scroll-container" 

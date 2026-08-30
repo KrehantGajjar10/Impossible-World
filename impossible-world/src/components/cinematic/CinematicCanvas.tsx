@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FrameLoader } from './FrameLoader';
-import { lerp } from '../../utils/math';
 
-const TOTAL_FRAMES = 240; 
+const TOTAL_FRAMES = 600;
 const ORIGINAL_WIDTH = 1920;
 const ORIGINAL_HEIGHT = 1080;
 
@@ -10,28 +9,33 @@ export const CinematicCanvas = ({ scrollProgressRef }: { scrollProgressRef: Reac
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const [isReady, setIsReady] = useState(false);
-  // Development diagnostics state (optional)
-  const [devDiagnostics, setDevDiagnostics] = useState({ current: 0, target: 0, progress: 0 });
-  const IS_DEV = import.meta.env.DEV; // Vite env flag
   
   const loaderRef = useRef<FrameLoader | null>(null);
   const currentRenderFrameRef = useRef(0);
+  const lastTargetFrameRef = useRef(0);
   const requestRef = useRef<number>(null);
   
   // Cache resize values so we don't calculate aspect ratio inside the 60fps loop
   const renderBoundsRef = useRef({ offsetX: 0, offsetY: 0, drawWidth: 0, drawHeight: 0 });
-
-  const lastTargetRef = useRef(0);
 
   useEffect(() => {
     // 1. Initialize Loader
     const loader = new FrameLoader(TOTAL_FRAMES);
     loaderRef.current = loader;
     
-    // Preload first 15 frames for an instant, smooth start
-    loader.initialize(15).then(() => {
+    // Preload first 30 frames for an instant start
+    loader.initialize(30).then(() => {
       setIsReady(true);
-      startRenderLoop();
+      
+      // Draw first frame immediately
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext('2d');
+        const img = loader.getClosestFrame(0);
+        if (ctx && img) {
+          const { offsetX, offsetY, drawWidth, drawHeight } = renderBoundsRef.current;
+          ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+        }
+      }
     });
 
     // 2. The Render Loop
@@ -52,51 +56,37 @@ export const CinematicCanvas = ({ scrollProgressRef }: { scrollProgressRef: Reac
           return;
         }
 
-        if (!canvasRef.current || !loaderRef.current) return;
-        
-        const ctx = canvasRef.current.getContext('2d');
-        if (!ctx) return;
-        
-        // Ensure smoothing is enabled
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-
-        const maxFrameIndex = TOTAL_FRAMES - 1;
-        const targetFrameIndex = scrollProgressRef.current * maxFrameIndex;
-        const targetInt = Math.round(targetFrameIndex);
-        
-        // Directional Prefetching
-        const direction = targetInt >= lastTargetRef.current ? 1 : -1;
-        lastTargetRef.current = targetInt;
-        
-        // Intelligent loading: Prioritize frames near where the user is scrolling
-        loaderRef.current.prioritizeFrame(targetInt);
-        loaderRef.current.loadSurroundingFrames(targetInt, 4, direction);
-        
-        // Interpolate current frame towards target frame for cinematic smoothness
-        currentRenderFrameRef.current = lerp(
-          currentRenderFrameRef.current,
-          targetFrameIndex,
-          0.08 // Slightly tweaked for a heavier, more cinematic feel
-        );
-
-        const drawFrameIndex = Math.round(currentRenderFrameRef.current);
-        const img = loaderRef.current.getFrame(drawFrameIndex);
-
-        if (img) {
-          const { offsetX, offsetY, drawWidth, drawHeight } = renderBoundsRef.current;
+        if (canvasRef.current && loaderRef.current && isReady) {
+          const ctx = canvasRef.current.getContext('2d');
           
-          // Clear and draw using the cached 'cover' bounds
-          ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-          ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-        }
+          if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
 
-        if (IS_DEV) {
-          setDevDiagnostics({
-            current: drawFrameIndex,
-            target: targetInt,
-            progress: scrollProgressRef.current
-          });
+            const maxFrameIndex = TOTAL_FRAMES - 1;
+            const targetFrame = scrollProgressRef.current * maxFrameIndex;
+            
+            // Determine scroll direction for preloading
+            const direction = targetFrame >= lastTargetFrameRef.current ? 1 : -1;
+            lastTargetFrameRef.current = targetFrame;
+            
+            // Trigger preloading
+            loaderRef.current.updatePreloadQueue(Math.round(targetFrame), direction);
+            
+            // The scroll progress is now naturally smoothed by useScrollProgress, 
+            // so we directly use the targetFrame as our current render frame.
+            currentRenderFrameRef.current = targetFrame;
+            
+            // Draw current frame
+            const drawFrameIndex = Math.round(currentRenderFrameRef.current);
+            const img = loaderRef.current.getClosestFrame(drawFrameIndex);
+
+            if (img) {
+              const { offsetX, offsetY, drawWidth, drawHeight } = renderBoundsRef.current;
+              ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+              ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+            }
+          }
         }
 
         requestRef.current = requestAnimationFrame(render);
@@ -109,43 +99,46 @@ export const CinematicCanvas = ({ scrollProgressRef }: { scrollProgressRef: Reac
       };
     };
 
+    const cleanupLoop = startRenderLoop();
+
     return () => {
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
       }
+      cleanupLoop();
     };
-  }, [scrollProgressRef, IS_DEV]);
+  }, [scrollProgressRef, isReady]);
 
   // Handle Canvas Resizing correctly
   useEffect(() => {
     const resizeCanvas = () => {
       if (!canvasRef.current) return;
       
-      // Clamp DPR to max 2 to prevent massive memory usage on super-retina displays
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const width = window.innerWidth;
       const height = window.innerHeight;
       
-      canvasRef.current.width = width * dpr;
-      canvasRef.current.height = height * dpr;
+      const adjustedWidth = width * dpr;
+      const adjustedHeight = height * dpr;
+
+      canvasRef.current.width = adjustedWidth;
+      canvasRef.current.height = adjustedHeight;
       
       // Calculate "cover" algorithm bounds ONCE per resize
-      const canvasRatio = canvasRef.current.width / canvasRef.current.height;
+      const canvasRatio = adjustedWidth / adjustedHeight;
       const imgRatio = ORIGINAL_WIDTH / ORIGINAL_HEIGHT;
       
-      let drawWidth = canvasRef.current.width;
-      let drawHeight = canvasRef.current.height;
+      let drawWidth = adjustedWidth;
+      let drawHeight = adjustedHeight;
       let offsetX = 0;
       let offsetY = 0;
 
       if (canvasRatio > imgRatio) {
-        // Canvas is wider than image aspect ratio, fit width
-        drawHeight = canvasRef.current.width / imgRatio;
-        offsetY = (canvasRef.current.height - drawHeight) / 2;
+        drawHeight = adjustedWidth / imgRatio;
+        offsetY = (adjustedHeight - drawHeight) / 2;
       } else {
-        // Canvas is taller than image aspect ratio, fit height
-        drawWidth = canvasRef.current.height * imgRatio;
-        offsetX = (canvasRef.current.width - drawWidth) / 2;
+        drawWidth = adjustedHeight * imgRatio;
+        offsetX = (adjustedWidth - drawWidth) / 2;
       }
       
       renderBoundsRef.current = { offsetX, offsetY, drawWidth, drawHeight };
@@ -159,6 +152,39 @@ export const CinematicCanvas = ({ scrollProgressRef }: { scrollProgressRef: Reac
 
   return (
     <>
+      {/* Loading Screen */}
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#050505',
+        color: '#ffffff',
+        zIndex: 100,
+        opacity: isReady ? 0 : 1,
+        pointerEvents: isReady ? 'none' : 'auto',
+        transition: 'opacity 1s ease-out',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }}>
+        <div style={{
+          fontSize: '14px',
+          fontWeight: 300,
+          letterSpacing: '0.4em',
+          marginBottom: '12px'
+        }}>
+          IMPOSSIBLE WORLD
+        </div>
+        <div style={{
+          fontSize: '10px',
+          letterSpacing: '0.2em',
+          opacity: 0.5
+        }}>
+          ENTERING THE WORLD
+        </div>
+      </div>
+
       <canvas 
         ref={canvasRef} 
         style={{
@@ -166,7 +192,7 @@ export const CinematicCanvas = ({ scrollProgressRef }: { scrollProgressRef: Reac
           inset: 0,
           width: '100%',
           height: '100%',
-          zIndex: -2,
+          zIndex: -3,
           opacity: isReady ? 1 : 0,
           transition: 'opacity 1.5s ease-in-out',
           backgroundColor: '#050505'
@@ -183,27 +209,6 @@ export const CinematicCanvas = ({ scrollProgressRef }: { scrollProgressRef: Reac
         opacity: isReady ? 1 : 0,
         transition: 'opacity 1.5s ease-in-out'
       }} />
-      
-      {/* Development Diagnostics Overlay */}
-      {IS_DEV && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          backgroundColor: 'rgba(0,0,0,0.8)',
-          color: '#00ff00',
-          padding: '10px',
-          fontFamily: 'monospace',
-          fontSize: '10px',
-          zIndex: 9999,
-          pointerEvents: 'none',
-          borderRadius: '4px'
-        }}>
-          <div>FRAME: {devDiagnostics.current} / {TOTAL_FRAMES - 1}</div>
-          <div>TARGET: {devDiagnostics.target}</div>
-          <div>SCROLL: {(devDiagnostics.progress * 100).toFixed(1)}%</div>
-        </div>
-      )}
     </>
   );
 };

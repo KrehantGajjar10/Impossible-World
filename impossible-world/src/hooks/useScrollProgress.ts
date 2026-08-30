@@ -1,38 +1,74 @@
 import { useEffect, useRef } from 'react';
-import { clamp } from '../utils/math';
+import { clamp, lerp } from '../utils/math';
 
 export const useScrollProgress = () => {
-  // Store scroll progress in a ref to avoid React re-renders on every scroll tick
-  const scrollProgressRef = useRef(0);
+  // We use two refs: one for the raw scroll input, one for the smoothed cinematic progress.
+  // By exporting both, components can bind their render loops to the *smoothed* value.
+  const targetProgressRef = useRef(0);
+  const currentProgressRef = useRef(0);
 
   useEffect(() => {
+    let requestRef: number;
+    let isVisible = !document.hidden;
+
     const handleScroll = () => {
-      // Calculate the maximum scrollable distance
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      
-      // If there is no scrollable space, default to 0
       if (maxScroll <= 0) {
-        scrollProgressRef.current = 0;
+        targetProgressRef.current = 0;
         return;
       }
-      
-      // Calculate progress and clamp between 0 and 1
-      const progress = window.scrollY / maxScroll;
-      scrollProgressRef.current = clamp(progress, 0, 1);
+      targetProgressRef.current = clamp(window.scrollY / maxScroll, 0, 1);
+    };
+
+    const handleVisibilityChange = () => {
+      isVisible = !document.hidden;
+      if (isVisible && !requestRef) {
+        requestRef = requestAnimationFrame(render);
+      }
+    };
+
+    const render = () => {
+      if (!isVisible) {
+        requestRef = 0;
+        return;
+      }
+
+      const target = targetProgressRef.current;
+      const current = currentProgressRef.current;
+      const dist = Math.abs(current - target);
+
+      // Adaptive lerp physics:
+      // When far away (fast scroll), accelerate catch-up (e.g. 0.3)
+      // When close (slow scroll or settling), ease smoothly (e.g. 0.05)
+      // This prevents the "sluggish" feeling while maintaining heavy cinematic weight.
+      if (dist > 0.0001) { // EPSILON to prevent micro-jitter
+        const dynamicLerp = clamp(0.06 + dist * 0.8, 0.06, 0.3);
+        currentProgressRef.current = lerp(current, target, dynamicLerp);
+      } else {
+        currentProgressRef.current = target;
+      }
+
+      requestRef = requestAnimationFrame(render);
     };
 
     // Attach listeners
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', handleScroll, { passive: true });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Initial calculation
+    // Initialize
     handleScroll();
+    currentProgressRef.current = targetProgressRef.current; // Start immediately at correct position without sliding from 0
+    requestRef = requestAnimationFrame(render);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleScroll);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      cancelAnimationFrame(requestRef);
     };
   }, []);
 
-  return scrollProgressRef;
+  // Return both so components can use the raw target if needed, but primarily use the smoothed current.
+  return { targetProgressRef, currentProgressRef };
 };

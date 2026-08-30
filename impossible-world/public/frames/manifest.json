@@ -1,19 +1,8 @@
 {
-  "originalVideo": "C:\\Users\\HP\\VSCodeProjectsKrehant\\ImpossibleWorldKG\\impossible-world\\source\\impossible-world.mp4",
-  "originalResolution": {
-    "width": 3840,
-    "height": 2160
-  },
-  "originalFPS": 24.0,
-  "originalDuration": 10.0,
-  "originalFrameCount": 240,
-  "outputResolution": {
-    "width": 1920,
-    "height": 1080
-  },
-  "extractedFrameCount": 240,
-  "samplingFPS": 24.0,
-  "format": "webp",
-  "quality": 80,
-  "namingPattern": "frame-XXXX.webp"
+  "frameCount": 600,
+  "width": 1920,
+  "height": 1080,
+  "fps": 59.99800339422981,
+  "duration": 10.017,
+  "pattern": "frame-{id}.webp"
 }

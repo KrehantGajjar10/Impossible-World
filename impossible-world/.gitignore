@@ -29,6 +29,7 @@ AGENTS.md
 
 # Generated cinematic video frames
 /public/frames/*.webp
+/public/video/*
 
 # Original video / large media
 /source/*.mp4
