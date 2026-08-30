@@ -27,9 +27,8 @@ dist-ssr
 /.agents/*
 AGENTS.md
 
-# Generated cinematic video frames
-/public/frames/*.webp
-/public/video/*
-
-# Original video / large media
+# Original source video — not needed in deployment
 /source/*.mp4
+
+# Local/generated video files — not currently used by the website
+/public/video/*
