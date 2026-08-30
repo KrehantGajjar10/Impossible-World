@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useScrollProgress } from '../../hooks/useScrollProgress';
 import { FrameLoader } from './FrameLoader';
 import { lerp } from '../../utils/math';
 
@@ -7,9 +6,8 @@ const TOTAL_FRAMES = 240;
 const ORIGINAL_WIDTH = 1920;
 const ORIGINAL_HEIGHT = 1080;
 
-export const CinematicCanvas = () => {
+export const CinematicCanvas = ({ scrollProgressRef }: { scrollProgressRef: React.MutableRefObject<number> }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const scrollProgressRef = useScrollProgress();
   
   const [isReady, setIsReady] = useState(false);
   // Development diagnostics state (optional)

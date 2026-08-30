@@ -1,16 +1,16 @@
 import { CinematicCanvas } from './components/cinematic/CinematicCanvas';
-import './index.css'; // ensure styles are loaded
+import { CinematicUI } from './components/ui/CinematicUI';
+import { useScrollProgress } from './hooks/useScrollProgress';
+import './index.css';
 
 function App() {
+  const scrollProgressRef = useScrollProgress();
+
   return (
     <>
-      <CinematicCanvas />
+      <CinematicCanvas scrollProgressRef={scrollProgressRef} />
+      <CinematicUI scrollProgressRef={scrollProgressRef} />
       
-      {/* 
-        This is the invisible container that forces the page to be scrollable.
-        1000vh provides a long enough scroll distance for the 10 second cinematic 
-        to feel substantial and controlled. 
-      */}
       <div 
         className="scroll-container" 
         style={{ 
@@ -19,7 +19,7 @@ function App() {
           position: 'absolute',
           top: 0,
           left: 0,
-          pointerEvents: 'none' // allow clicks to pass through if needed
+          pointerEvents: 'none'
         }}
       />
     </>
