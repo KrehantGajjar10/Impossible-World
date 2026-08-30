@@ -54,12 +54,14 @@ export class FrameLoader {
   }
 
   /**
-   * Queue surrounding frames based on current focus
+   * Queue frames based on current focus and scroll direction
    */
-  public loadSurroundingFrames(centerIndex: number, radius = 5): void {
+  public loadSurroundingFrames(centerIndex: number, radius = 5, direction: number = 1): void {
+    // If direction is positive, prioritize forward frames. If negative, backward frames.
     for (let i = 1; i <= radius; i++) {
-      this.prioritizeFrame(centerIndex + i);
-      this.prioritizeFrame(centerIndex - i);
+      this.prioritizeFrame(centerIndex + (i * direction));
+      // Load the opposite direction with lower priority (later in the loop)
+      this.prioritizeFrame(centerIndex - (i * direction));
     }
   }
 

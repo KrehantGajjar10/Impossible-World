@@ -149,7 +149,9 @@ export const CinematicUI = ({ scrollProgressRef }: CinematicUIProps) => {
           <span style={{ fontSize: '9px', letterSpacing: '0.2em', marginBottom: '12px' }}>
             SCROLL TO EXPLORE
           </span>
-          <div style={{
+          <div 
+            className="animate-scroll-hint"
+            style={{
             width: '1px',
             height: '40px',
             background: 'linear-gradient(to bottom, rgba(255,255,255,0.5), transparent)'

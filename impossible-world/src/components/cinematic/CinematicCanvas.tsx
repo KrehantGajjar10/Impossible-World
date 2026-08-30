@@ -21,6 +21,8 @@ export const CinematicCanvas = ({ scrollProgressRef }: { scrollProgressRef: Reac
   // Cache resize values so we don't calculate aspect ratio inside the 60fps loop
   const renderBoundsRef = useRef({ offsetX: 0, offsetY: 0, drawWidth: 0, drawHeight: 0 });
 
+  const lastTargetRef = useRef(0);
+
   useEffect(() => {
     // 1. Initialize Loader
     const loader = new FrameLoader(TOTAL_FRAMES);
@@ -61,11 +63,15 @@ export const CinematicCanvas = ({ scrollProgressRef }: { scrollProgressRef: Reac
 
         const maxFrameIndex = TOTAL_FRAMES - 1;
         const targetFrameIndex = scrollProgressRef.current * maxFrameIndex;
+        const targetInt = Math.round(targetFrameIndex);
+        
+        // Directional Prefetching
+        const direction = targetInt >= lastTargetRef.current ? 1 : -1;
+        lastTargetRef.current = targetInt;
         
         // Intelligent loading: Prioritize frames near where the user is scrolling
-        const targetInt = Math.round(targetFrameIndex);
         loaderRef.current.prioritizeFrame(targetInt);
-        loaderRef.current.loadSurroundingFrames(targetInt, 3);
+        loaderRef.current.loadSurroundingFrames(targetInt, 4, direction);
         
         // Interpolate current frame towards target frame for cinematic smoothness
         currentRenderFrameRef.current = lerp(
@@ -160,45 +166,23 @@ export const CinematicCanvas = ({ scrollProgressRef }: { scrollProgressRef: Reac
           inset: 0,
           width: '100%',
           height: '100%',
-          zIndex: -1,
+          zIndex: -2,
           opacity: isReady ? 1 : 0,
           transition: 'opacity 1.5s ease-in-out',
           backgroundColor: '#050505'
         }}
       />
       
-      {/* Loading Screen */}
+      {/* Subtle Cinematic Overlay (Vignette + Slight Darkening) */}
       <div style={{
         position: 'fixed',
         inset: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#050505',
-        color: '#ffffff',
-        zIndex: 100,
-        opacity: isReady ? 0 : 1,
-        pointerEvents: isReady ? 'none' : 'auto',
-        transition: 'opacity 1s ease-out',
-        fontFamily: 'system-ui, -apple-system, sans-serif'
-      }}>
-        <div style={{
-          fontSize: '14px',
-          fontWeight: 300,
-          letterSpacing: '0.4em',
-          marginBottom: '12px'
-        }}>
-          IMPOSSIBLE WORLD
-        </div>
-        <div style={{
-          fontSize: '10px',
-          letterSpacing: '0.2em',
-          opacity: 0.5
-        }}>
-          ENTERING THE WORLD
-        </div>
-      </div>
+        pointerEvents: 'none',
+        zIndex: -1,
+        background: 'radial-gradient(circle at center, transparent 40%, rgba(0, 0, 0, 0.4) 100%)',
+        opacity: isReady ? 1 : 0,
+        transition: 'opacity 1.5s ease-in-out'
+      }} />
       
       {/* Development Diagnostics Overlay */}
       {IS_DEV && (
