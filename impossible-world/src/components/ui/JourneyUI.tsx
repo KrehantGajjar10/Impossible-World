@@ -2,49 +2,50 @@ import { useEffect, useRef } from 'react';
 import { journeyState } from '../journey/journeyState';
 
 const SECTIONS = [
-  { threshold: 0.25, label: '01 — THE MONOLITH' },
-  { threshold: 0.50, label: '02 — THE GATEWAY' },
-  { threshold: 0.75, label: '03 — THE FRACTURE' },
-  { threshold: 1.01, label: '04 — THE VOID' } // slightly above 1 to catch the exact end
+  { threshold: 0.25, num: '01', title: 'THE MONOLITH', subtitle: 'STRUCTURE / ORIGIN' },
+  { threshold: 0.50, num: '02', title: 'THE GATEWAY', subtitle: 'STRUCTURE / TRANSITION' },
+  { threshold: 0.75, num: '03', title: 'THE FRACTURE', subtitle: 'DIMENSION / COLLAPSE' },
+  { threshold: 1.01, num: '04', title: 'THE VOID', subtitle: 'DIMENSION / UNKNOWN' }
 ];
 
 export const JourneyUI = () => {
   const dotRef = useRef<HTMLDivElement>(null);
-  const labelRef = useRef<HTMLDivElement>(null);
+  const labelNumRef = useRef<HTMLDivElement>(null);
+  const labelTitleRef = useRef<HTMLDivElement>(null);
+  const labelSubRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let frameId: number;
-    let currentLabel = '';
+    let currentTitle = '';
 
     const loop = () => {
       const p = journeyState.progress;
 
-      // Update dot position (using top offset or transform)
-      // The line is 200px tall. Dot travels 0 to 200px.
+      // Update dot position using top percentage
       if (dotRef.current) {
-        dotRef.current.style.transform = `translateY(${p * 200}px)`;
+        dotRef.current.style.top = `${p * 100}%`;
         
         // Color transition based on progress (passing 0.5 into the Void)
         if (p > 0.5) {
           const colorIntensity = Math.min(1, (p - 0.5) * 4); // 0 to 1
           const r = Math.floor(255);
-          const g = Math.floor(255 - (colorIntensity * 190)); // 255 -> 65
-          const b = Math.floor(255 - (colorIntensity * 190)); // 255 -> 65
+          const g = Math.floor(255 - (colorIntensity * 190));
+          const b = Math.floor(255 - (colorIntensity * 190));
           dotRef.current.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-          dotRef.current.style.boxShadow = `0 0 10px rgba(${r}, ${g}, ${b}, 0.8)`;
+          dotRef.current.style.boxShadow = `0 0 8px rgba(${r}, ${g}, ${b}, 0.8)`;
         } else {
           dotRef.current.style.backgroundColor = 'white';
-          dotRef.current.style.boxShadow = '0 0 10px rgba(255,255,255,0.8)';
+          dotRef.current.style.boxShadow = '0 0 8px rgba(255,255,255,0.8)';
         }
       }
 
       // Update label
-      if (labelRef.current) {
-        const activeSection = SECTIONS.find(s => p < s.threshold) || SECTIONS[3];
-        if (activeSection.label !== currentLabel) {
-          currentLabel = activeSection.label;
-          labelRef.current.innerText = currentLabel;
-        }
+      const activeSection = SECTIONS.find(s => p < s.threshold) || SECTIONS[3];
+      if (activeSection.title !== currentTitle) {
+        currentTitle = activeSection.title;
+        if (labelNumRef.current) labelNumRef.current.innerText = activeSection.num;
+        if (labelTitleRef.current) labelTitleRef.current.innerText = activeSection.title;
+        if (labelSubRef.current) labelSubRef.current.innerText = activeSection.subtitle;
       }
 
       frameId = requestAnimationFrame(loop);
@@ -55,65 +56,27 @@ export const JourneyUI = () => {
   }, []);
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      pointerEvents: 'none',
-      zIndex: 50,
-      fontFamily: 'monospace',
-      color: 'white'
-    }}>
+    <div className="journey-ui">
       {/* Branding */}
-      <div style={{
-        position: 'absolute',
-        top: '40px',
-        left: '40px',
-        opacity: 0.5,
-        letterSpacing: '0.2em'
-      }}>
-        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>IMPOSSIBLE WORLD</div>
-        <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.6 }}>AN EXPERIMENT IN SPATIAL IMPOSSIBILITY</div>
+      <div className="journey-branding">
+        <div className="branding-title">IMPOSSIBLE<br/>WORLD</div>
+        <div className="branding-subtitle">SPATIAL STUDY / 001</div>
       </div>
 
       {/* Progress Indicator */}
-      <div style={{
-        position: 'absolute',
-        top: '50%',
-        right: '40px',
-        transform: 'translateY(-50%)',
-        height: '200px',
-        width: '1px',
-        background: 'rgba(255,255,255,0.2)',
-        display: 'flex',
-        justifyContent: 'center'
-      }}>
-        <div 
-          ref={dotRef}
-          style={{
-            position: 'absolute',
-            top: '-2px',
-            width: '5px',
-            height: '5px',
-            borderRadius: '50%',
-            background: 'white',
-            boxShadow: '0 0 10px rgba(255,255,255,0.8)'
-          }}
-        />
+      <div className="journey-progress-container">
+        <div className="progress-num">01</div>
+        <div className="progress-track">
+          <div ref={dotRef} className="progress-dot" />
+        </div>
+        <div className="progress-num">04</div>
       </div>
 
       {/* Current Journey Label */}
-      <div style={{
-        position: 'absolute',
-        bottom: '40px',
-        left: '40px',
-        opacity: 0.7,
-        letterSpacing: '0.15em',
-        fontSize: '12px'
-      }} ref={labelRef}>
-        01 — THE MONOLITH
+      <div className="journey-label">
+        <div className="label-num" ref={labelNumRef}>01</div>
+        <div className="label-title" ref={labelTitleRef}>THE MONOLITH</div>
+        <div className="label-subtitle" ref={labelSubRef}>STRUCTURE / ORIGIN</div>
       </div>
     </div>
   );

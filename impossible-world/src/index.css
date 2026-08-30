@@ -8,6 +8,14 @@ body,
   background-color: #050505;
   color: #ffffff;
   font-family: sans-serif;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Hide scrollbars in Firefox */
+}
+
+/* Hide scrollbars in Chrome/Safari/Edge */
+::-webkit-scrollbar {
+  display: none;
 }
 
 .canvas-container {
@@ -27,4 +35,151 @@ body,
   height: 1000vh; /* Expanded for Phase 9 journey */
   z-index: 2;
   pointer-events: none; /* Let pointer events pass through to canvas if needed later */
+}
+
+/* --- UI Layers --- */
+.journey-ui {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+  font-family: 'Inter', sans-serif; /* Fallback sans-serif if not loaded */
+  color: white;
+}
+
+/* Branding */
+.journey-branding {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  opacity: 0.85;
+}
+
+.branding-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.branding-subtitle {
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  opacity: 0.4;
+}
+
+/* Progress Indicator */
+.journey-progress-container {
+  position: absolute;
+  top: 50%;
+  right: 48px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  opacity: 0.7;
+}
+
+.progress-num {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  opacity: 0.5;
+  font-family: monospace;
+}
+
+.progress-track {
+  position: relative;
+  height: 160px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.progress-dot {
+  position: absolute;
+  top: 0%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+  transition: background-color 0.1s, box-shadow 0.1s;
+}
+
+/* Journey Label */
+.journey-label {
+  position: absolute;
+  bottom: 48px;
+  left: 48px;
+}
+
+.label-num {
+  font-family: monospace;
+  font-size: 10px;
+  opacity: 0.4;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.label-title {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  margin-bottom: 6px;
+}
+
+.label-subtitle {
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  opacity: 0.4;
+}
+
+/* Audio Toggle */
+.audio-toggle {
+  position: fixed;
+  bottom: 48px;
+  right: 48px;
+  z-index: 100;
+  background: transparent;
+  color: white;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  opacity: 0.5;
+  pointer-events: auto;
+  transition: opacity 0.3s;
+}
+
+.audio-toggle:hover {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .journey-branding, .journey-label {
+    left: 24px;
+  }
+  .journey-branding {
+    top: 24px;
+  }
+  .journey-label {
+    bottom: 24px;
+  }
+  .journey-progress-container {
+    right: 24px;
+  }
+  .audio-toggle {
+    bottom: 24px;
+    right: 24px;
+  }
 }

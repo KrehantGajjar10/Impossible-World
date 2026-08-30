@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { EffectComposer, Bloom, DepthOfField, Vignette, ChromaticAberration } from '@react-three/postprocessing';
 import * as THREE from 'three';
@@ -10,6 +10,8 @@ export const CinematicEffects = () => {
   const dofRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const caRef = useRef<any>(null);
+
+  const targetOffset = useMemo(() => new THREE.Vector2(0, 0), []);
 
   useFrame(() => {
     const progress = journeyState.progress;
@@ -35,7 +37,7 @@ export const CinematicEffects = () => {
         intensity = (0.15 - distFromThreshold) * 0.05; 
       }
       
-      const targetOffset = new THREE.Vector2(intensity, intensity);
+      targetOffset.set(intensity, intensity);
       if (caRef.current.offset) {
         caRef.current.offset.lerp(targetOffset, 0.1);
       }
